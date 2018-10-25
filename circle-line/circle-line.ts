@@ -9,7 +9,8 @@ class Circle {
     constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
-        this.r = Math.random() * 10;
+        this.r = (Math.random() * 10) >> 0;
+        if (this.r < 2) this.r = 2;
         // this.v_x = Math.random() * (Math.random() > .5 ? 1 : -1);
         // this.v_y = Math.random() * (Math.random() > .5 ? 1 : -1);
         this.v_x = this.getVelocity();
@@ -31,8 +32,15 @@ class Circle {
             this.v_x = this.x + this.r < w && this.x - this.r > 0 ? this.v_x : -this.v_x;
             this.v_y = this.y + this.r < h && this.y - this.r > 0 ? this.v_y : -this.v_y;
         }
-        // this.x += this.v_x;
-        // this.y += this.v_y;
+        this.x += this.v_x;
+        this.y += this.v_y;
+        return this;
+    }
+    moveAimTo(x: number, y: number) {
+        var v_x = (x - this.x) / 360;
+        var v_y = (y - this.y) / 360;
+        this.x -= v_x;
+        this.y -= v_y;
         return this;
     }
 }
@@ -116,8 +124,11 @@ class Drawer {
         // 分隔为上下两部分
         var tops: Circle[] = [];
         var bottoms: Circle[] = [];
+        var dl = 0;
         this.mouseRelatedCircles.forEach(c => {
-            this.drawCircle(c);
+            // this.drawCircle(c.move(this.w, this.h));
+            var m = getDl(this.mouseCircle, c);
+            dl = m > dl ? m : dl;
             if (c.y >= split_y) {
                 tops.push(c);
             } else {
@@ -125,15 +136,53 @@ class Drawer {
             }
         });
 
+        // tops.sort((c1, c2) => {
+        //     if()
+        //     return c1.x > c2.x ? 1 : -1;
+        // });
+
+        function getDl(c0, c) {
+            var dx = c0.x - c.x;
+            var dy = c0.y - c.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
         // 连接成一个圈
         var arr: Circle[] = tops.concat(bottoms);
         var i: number = 0;
         var len: number = arr.length;
+        var unitRadian = (Math.PI / 180) * (360 / len);
         this.drawLine(arr[i], arr[len - 1], true);
         for (i = 0; i < len - 1; i++) {
+            // console.log(this.getAimPos(arr[i], unitRadian * (i + 1)));
+            // arr[i].color = 'red';
+            var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
+            console.log(aimPos);
+            arr[i].moveAimTo(aimPos[0], aimPos[1]);
+            // arr[i].x = aimPos[0];
+            // arr[i].y = aimPos[1];
+            this.drawCircle(arr[i]);
             this.drawLine(arr[i], arr[i + 1], true);
         }
+        // arr[i].color = 'red';
+        // var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
+        // console.log(aimPos);
+        // // arr[i].moveAimTo(aimPos[0], aimPos[1]);
+        // arr[i].x = aimPos[0];
+        // arr[i].y = aimPos[1];
+        // this.drawCircle(arr[i]);
+        // debugger;
         this.mouseRelatedCircles = [];
+    }
+    getAimPos(c: Circle, radian: number, dl: number): number[] {
+        console.log(radian);
+        var o_x = this.mouseCircle.x >> 0;
+        var o_y = this.mouseCircle.y >> 0;
+        var x = (-dl * Math.cos(radian)) >> 0;
+        var y = (dl * Math.sin(radian)) >> 0;
+
+        // console.log([o_x, o_y, dl, Math.cos(radian), Math.sin(radian)], [x, y], [o_x - x, o_y - y]);
+        return [o_x - x, o_y - y];
     }
     draw() {
         this.stop();
@@ -158,18 +207,18 @@ class Drawer {
             this.mouseRelatedCircles = [];
         }
 
-        for (let i = 0, l = this.circles.length; i < l; i++) {
-            if (relatedIndex.includes(i)) {
-                continue;
-            }
-            this.drawCircle(this.circles[i]);
-            let j = i + 1;
-            while (j < l) {
-                !relatedIndex.includes(j) && this.drawLine(this.circles[i], this.circles[j]);
-                j++;
-            }
-            this.circles[i].move(this.w, this.h);
-        }
+        // for (let i = 0, l = this.circles.length; i < l; i++) {
+        //     if (relatedIndex.includes(i)) {
+        //         continue;
+        //     }
+        //     this.drawCircle(this.circles[i]);
+        //     let j = i + 1;
+        //     while (j < l) {
+        //         !relatedIndex.includes(j) && this.drawLine(this.circles[i], this.circles[j]);
+        //         j++;
+        //     }
+        //     this.circles[i].move(this.w, this.h);
+        // }
 
         this.requestAnimationFrameID = window.requestAnimationFrame(this.draw.bind(this));
     }
@@ -229,4 +278,4 @@ class Drawer {
 }
 
 let canvasEl = <HTMLCanvasElement>document.getElementById('canvas');
-let clDrawer = new Drawer(canvasEl, 80, canvasEl.clientWidth, canvasEl.clientHeight);
+let clDrawer = new Drawer(canvasEl, 60, canvasEl.clientWidth, canvasEl.clientHeight);
