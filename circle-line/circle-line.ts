@@ -4,8 +4,9 @@ class Circle {
     r: number;
     v_x: number;
     v_y: number;
+    color: string = 'rgba(204, 204, 204, 0.3)';
 
-    constructor(x, y) {
+    constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
         this.r = Math.random() * 10;
@@ -23,14 +24,8 @@ class Circle {
     move(w: number, h: number): Circle {
         // 超出屏幕范围则速度反向 模拟反弹
         if (w && h) {
-            this.v_x =
-                this.x + this.r < w && this.x - this.r > 0
-                    ? this.v_x
-                    : -this.v_x;
-            this.v_y =
-                this.y + this.r < h && this.y - this.r > 0
-                    ? this.v_y
-                    : -this.v_y;
+            this.v_x = this.x + this.r < w && this.x - this.r > 0 ? this.v_x : -this.v_x;
+            this.v_y = this.y + this.r < h && this.y - this.r > 0 ? this.v_y : -this.v_y;
         }
         this.x += this.v_x;
         this.y += this.v_y;
@@ -41,7 +36,7 @@ class Circle {
 class CurrCircle extends Circle {
     color: string;
     inActive: boolean;
-    constructor(x, y) {
+    constructor(x: number, y: number) {
         super(x, y);
         this.r = 12;
         this.color = 'rgba(255, 77, 54, 0.6)';
@@ -51,26 +46,26 @@ class CurrCircle extends Circle {
 
 class Drawer {
     canvas: HTMLCanvasElement;
-    num: number;
+    num: number = 50;
     w: number;
     h: number;
     ctx: CanvasRenderingContext2D;
     circles: Array<Circle>;
     mouseCircle: CurrCircle;
-    requestAnimationFrameID: number;
+    requestAnimationFrameID: number | undefined = undefined;
 
     constructor(canvas: HTMLCanvasElement, num: number, w: number, h: number) {
         this.canvas = canvas;
         canvas.width = w;
         canvas.height = h;
-        this.ctx = canvas.getContext('2d');
+        this.ctx = <CanvasRenderingContext2D>canvas.getContext('2d');
         this.w = w;
         this.h = h;
         this.circles = [];
         this.mouseCircle = new CurrCircle(0, 0);
         this.init(num);
     }
-    drawLine(c, o) {
+    drawLine(c: Circle, o: Circle) {
         const dx = c.x - o.x;
         const dy = c.y - o.y;
         // 如果距离太远就不连线了
@@ -79,22 +74,23 @@ class Drawer {
             this.ctx.moveTo(c.x, c.y); //起始点
             this.ctx.lineTo(o.x, o.y); //终点
             this.ctx.closePath();
-            this.ctx.strokeStyle = 'rgba(204, 204, 204, 0.3)';
+            this.ctx.strokeStyle = c.color;
             this.ctx.stroke();
         }
     }
-    drawCircle(c) {
+    drawCircle(c: Circle) {
         this.ctx.beginPath();
         // 画
         this.ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
         // 填充颜色
-        this.ctx.fillStyle = c.color || 'rgba(204, 204, 204, 0.3)';
+        this.ctx.fillStyle = c.color;
         // 叠加样式
         this.ctx.globalCompositeOperation = 'destination-over';
         // 添加到画布
         this.ctx.fill();
     }
     draw() {
+        this.stop();
         this.ctx.clearRect(0, 0, this.w, this.h);
 
         for (let i = 0, l = this.circles.length; i < l; i++) {
@@ -113,17 +109,13 @@ class Drawer {
             }
         }
 
-        this.requestAnimationFrameID = window.requestAnimationFrame(
-            this.draw.bind(this)
-        );
+        this.requestAnimationFrameID = window.requestAnimationFrame(this.draw.bind(this));
     }
     move() {
-        if (!this.requestAnimationFrameID) {
-            this.draw();
-        }
+        this.draw();
     }
     stop() {
-        if (this.requestAnimationFrameID) {
+        if (this.requestAnimationFrameID !== undefined) {
             window.cancelAnimationFrame(this.requestAnimationFrameID);
         }
     }
@@ -131,9 +123,7 @@ class Drawer {
     init(num: number) {
         this.initEvent();
         for (let i = 0; i < num; i++) {
-            this.circles.push(
-                new Circle(Math.random() * this.w, Math.random() * this.h)
-            );
+            this.circles.push(new Circle(Math.random() * this.w, Math.random() * this.h));
         }
         this.move();
     }
@@ -176,10 +166,5 @@ class Drawer {
     }
 }
 
-let canvasEl = document.getElementById('canvas');
-let clDrawer = new Drawer(
-    canvasEl,
-    80,
-    canvasEl.clientWidth,
-    canvasEl.clientHeight
-);
+let canvasEl = <HTMLCanvasElement>document.getElementById('canvas');
+let clDrawer = new Drawer(canvasEl, 80, canvasEl.clientWidth, canvasEl.clientHeight);

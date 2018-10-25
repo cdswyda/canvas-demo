@@ -1,3 +1,4 @@
+"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
@@ -10,6 +11,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 var Circle = /** @class */ (function () {
     function Circle(x, y) {
+        this.color = 'rgba(204, 204, 204, 0.3)';
         this.x = x;
         this.y = y;
         this.r = Math.random() * 10;
@@ -28,14 +30,8 @@ var Circle = /** @class */ (function () {
     Circle.prototype.move = function (w, h) {
         // 超出屏幕范围则速度反向 模拟反弹
         if (w && h) {
-            this.v_x =
-                this.x + this.r < w && this.x - this.r > 0
-                    ? this.v_x
-                    : -this.v_x;
-            this.v_y =
-                this.y + this.r < h && this.y - this.r > 0
-                    ? this.v_y
-                    : -this.v_y;
+            this.v_x = this.x + this.r < w && this.x - this.r > 0 ? this.v_x : -this.v_x;
+            this.v_y = this.y + this.r < h && this.y - this.r > 0 ? this.v_y : -this.v_y;
         }
         this.x += this.v_x;
         this.y += this.v_y;
@@ -56,6 +52,8 @@ var CurrCircle = /** @class */ (function (_super) {
 }(Circle));
 var Drawer = /** @class */ (function () {
     function Drawer(canvas, num, w, h) {
+        this.num = 50;
+        this.requestAnimationFrameID = undefined;
         this.canvas = canvas;
         canvas.width = w;
         canvas.height = h;
@@ -75,7 +73,7 @@ var Drawer = /** @class */ (function () {
             this.ctx.moveTo(c.x, c.y); //起始点
             this.ctx.lineTo(o.x, o.y); //终点
             this.ctx.closePath();
-            this.ctx.strokeStyle = 'rgba(204, 204, 204, 0.3)';
+            this.ctx.strokeStyle = c.color;
             this.ctx.stroke();
         }
     };
@@ -84,13 +82,14 @@ var Drawer = /** @class */ (function () {
         // 画
         this.ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
         // 填充颜色
-        this.ctx.fillStyle = c.color || 'rgba(204, 204, 204, 0.3)';
+        this.ctx.fillStyle = c.color;
         // 叠加样式
         this.ctx.globalCompositeOperation = 'destination-over';
         // 添加到画布
         this.ctx.fill();
     };
     Drawer.prototype.draw = function () {
+        this.stop();
         this.ctx.clearRect(0, 0, this.w, this.h);
         for (var i = 0, l = this.circles.length; i < l; i++) {
             this.drawCircle(this.circles[i].move(this.w, this.h));
@@ -109,12 +108,10 @@ var Drawer = /** @class */ (function () {
         this.requestAnimationFrameID = window.requestAnimationFrame(this.draw.bind(this));
     };
     Drawer.prototype.move = function () {
-        if (!this.requestAnimationFrameID) {
-            this.draw();
-        }
+        this.draw();
     };
     Drawer.prototype.stop = function () {
-        if (this.requestAnimationFrameID) {
+        if (this.requestAnimationFrameID !== undefined) {
             window.cancelAnimationFrame(this.requestAnimationFrameID);
         }
     };
