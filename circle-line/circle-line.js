@@ -20,12 +20,18 @@ var Circle = /** @class */ (function () {
         this.v_x = this.getVelocity();
         this.v_y = this.getVelocity();
     }
-    Circle.prototype.getVelocity = function (min) {
+    Circle.prototype.getVelocity = function (min, max) {
+        if (min === void 0) { min = 0.2; }
+        if (max === void 0) { max = 0.8; }
         var f = Math.random() > 0.5 ? 1 : -1;
         var v = Math.random();
-        if (v < (min || 0.2))
-            v = 0.2;
-        return f * v;
+        if (v < min) {
+            v = min;
+        }
+        else if (v > max) {
+            v = max;
+        }
+        return f * v * 0.8;
     };
     Circle.prototype.move = function (w, h) {
         // 超出屏幕范围则速度反向 模拟反弹
@@ -33,8 +39,8 @@ var Circle = /** @class */ (function () {
             this.v_x = this.x + this.r < w && this.x - this.r > 0 ? this.v_x : -this.v_x;
             this.v_y = this.y + this.r < h && this.y - this.r > 0 ? this.v_y : -this.v_y;
         }
-        this.x += this.v_x;
-        this.y += this.v_y;
+        // this.x += this.v_x;
+        // this.y += this.v_y;
         return this;
     };
     return Circle;
@@ -43,6 +49,7 @@ var CurrCircle = /** @class */ (function (_super) {
     __extends(CurrCircle, _super);
     function CurrCircle(x, y) {
         var _this = _super.call(this, x, y) || this;
+        _this.isCurrent = true;
         _this.r = 12;
         _this.color = 'rgba(255, 77, 54, 0.6)';
         _this.inActive = false;
@@ -52,30 +59,37 @@ var CurrCircle = /** @class */ (function (_super) {
 }(Circle));
 var Drawer = /** @class */ (function () {
     function Drawer(canvas, num, w, h) {
-        this.num = 50;
+        if (num === void 0) { num = 50; }
         this.requestAnimationFrameID = undefined;
         this.canvas = canvas;
+        this.num = num;
         canvas.width = w;
         canvas.height = h;
         this.ctx = canvas.getContext('2d');
         this.w = w;
         this.h = h;
         this.circles = [];
+        this.mouseRelatedCircles = [];
+        this.mouseRelatedCirclesSorted = false;
         this.mouseCircle = new CurrCircle(0, 0);
-        this.init(num);
+        this.init();
     }
-    Drawer.prototype.drawLine = function (c, o) {
+    Drawer.prototype.drawLine = function (c, o, force) {
+        if (force === void 0) { force = false; }
         var dx = c.x - o.x;
         var dy = c.y - o.y;
-        // 如果距离太远就不连线了
-        if (Math.sqrt(dx * dx + dy * dy) < Math.min(this.w, this.h) / 4) {
+        // 如果距离太远、太近就不连线了
+        var dis = Math.sqrt(dx * dx + dy * dy);
+        if (force || (dis < Math.min(this.w, this.h) / 4 && (dis > 10 || c instanceof CurrCircle))) {
             this.ctx.beginPath();
             this.ctx.moveTo(c.x, c.y); //起始点
             this.ctx.lineTo(o.x, o.y); //终点
             this.ctx.closePath();
-            this.ctx.strokeStyle = c.color;
+            this.ctx.strokeStyle = o.color;
             this.ctx.stroke();
+            return true;
         }
+        return false;
     };
     Drawer.prototype.drawCircle = function (c) {
         this.ctx.beginPath();
@@ -88,22 +102,68 @@ var Drawer = /** @class */ (function () {
         // 添加到画布
         this.ctx.fill();
     };
+    Drawer.prototype.drawActiveCircleLine = function (circleIds, split_y) {
+        var _this = this;
+        if (!this.mouseRelatedCircles.length) {
+            return;
+        }
+        // 按 x 方向排序
+        this.mouseRelatedCircles.sort(function (c1, c2) {
+            return c1.x > c2.x ? 1 : -1;
+        });
+        // 分隔为上下两部分
+        var tops = [];
+        var bottoms = [];
+        this.mouseRelatedCircles.forEach(function (c) {
+            _this.drawCircle(c);
+            if (c.y >= split_y) {
+                tops.push(c);
+            }
+            else {
+                bottoms.unshift(c);
+            }
+        });
+        // 连接成一个圈
+        var arr = tops.concat(bottoms);
+        var i = 0;
+        var len = arr.length;
+        this.drawLine(arr[i], arr[len - 1], true);
+        for (i = 0; i < len - 1; i++) {
+            this.drawLine(arr[i], arr[i + 1], true);
+        }
+        this.mouseRelatedCircles = [];
+    };
     Drawer.prototype.draw = function () {
         this.stop();
         this.ctx.clearRect(0, 0, this.w, this.h);
-        for (var i = 0, l = this.circles.length; i < l; i++) {
-            this.drawCircle(this.circles[i].move(this.w, this.h));
-            var j = i + 1;
-            while (j < l) {
-                this.drawLine(this.circles[i], this.circles[j]);
-                j++;
-            }
-        }
+        var relatedIndex = [];
         if (this.mouseCircle.inActive) {
             this.drawCircle(this.mouseCircle);
             for (var i = 0, l = this.circles.length; i < l; ++i) {
-                this.drawLine(this.mouseCircle, this.circles[i]);
+                // this.drawLine(this.mouseCircle, this.circles[i]);
+                if (this.drawLine(this.mouseCircle, this.circles[i])) {
+                    relatedIndex.push(i);
+                    this.mouseRelatedCircles.push(this.circles[i]);
+                }
             }
+            if (relatedIndex.length) {
+                this.drawActiveCircleLine(relatedIndex, this.mouseCircle.y);
+            }
+        }
+        else {
+            this.mouseRelatedCircles = [];
+        }
+        for (var i = 0, l = this.circles.length; i < l; i++) {
+            if (relatedIndex.includes(i)) {
+                continue;
+            }
+            this.drawCircle(this.circles[i]);
+            var j = i + 1;
+            while (j < l) {
+                !relatedIndex.includes(j) && this.drawLine(this.circles[i], this.circles[j]);
+                j++;
+            }
+            this.circles[i].move(this.w, this.h);
         }
         this.requestAnimationFrameID = window.requestAnimationFrame(this.draw.bind(this));
     };
@@ -116,21 +176,21 @@ var Drawer = /** @class */ (function () {
         }
     };
     Drawer.prototype.destroy = function () { };
-    Drawer.prototype.init = function (num) {
+    Drawer.prototype.init = function () {
         this.initEvent();
-        for (var i = 0; i < num; i++) {
+        for (var i = 0; i < this.num; i++) {
             this.circles.push(new Circle(Math.random() * this.w, Math.random() * this.h));
         }
         this.move();
     };
     Drawer.prototype.initEvent = function () {
         var _this = this;
-        this.canvas.addEventListener('mousemove', function (e) {
+        document.addEventListener('mousemove', function (e) {
             _this.mouseCircle.inActive = true;
             _this.mouseCircle.x = e.clientX;
             _this.mouseCircle.y = e.clientY;
         }, false);
-        this.canvas.addEventListener('mouseout', function (e) {
+        document.addEventListener('mouseout', function (e) {
             _this.mouseCircle.inActive = false;
         }, false);
         var resizeTimer;
