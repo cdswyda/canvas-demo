@@ -165,12 +165,12 @@ var Drawer = /** @class */ (function () {
             this.drawLine(arr[i], arr[i + 1], true);
         }
         // arr[i].color = 'red';
-        // var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
-        // console.log(aimPos);
-        // // arr[i].moveAimTo(aimPos[0], aimPos[1]);
+        var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
+        console.log(aimPos);
+        arr[i].moveAimTo(aimPos[0], aimPos[1]);
         // arr[i].x = aimPos[0];
         // arr[i].y = aimPos[1];
-        // this.drawCircle(arr[i]);
+        this.drawCircle(arr[i]);
         // debugger;
         this.mouseRelatedCircles = [];
     };
