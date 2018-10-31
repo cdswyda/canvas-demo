@@ -36,7 +36,7 @@ class Circle {
         this.y += this.v_y;
         return this;
     }
-    moveAimTo(x: number, y: number) {
+    moveToward(x: number, y: number) {
         var v_x = (x - this.x) / 360;
         var v_y = (y - this.y) / 360;
         this.x -= v_x;
@@ -111,10 +111,12 @@ class Drawer {
         // 添加到画布
         this.ctx.fill();
     }
-    drawActiveCircleLine(circleIds: number[], split_y: number) {
+    drawActiveCircleLine() {
         if (!this.mouseRelatedCircles.length) {
             return;
         }
+
+        const split_y = this.mouseCircle.y;
 
         // 按 x 方向排序
         this.mouseRelatedCircles.sort((c1, c2) => {
@@ -141,7 +143,7 @@ class Drawer {
         //     return c1.x > c2.x ? 1 : -1;
         // });
 
-        function getDl(c0, c) {
+        function getDl(c0: Circle, c: Circle) {
             var dx = c0.x - c.x;
             var dy = c0.y - c.y;
             return Math.sqrt(dx * dx + dy * dy);
@@ -158,19 +160,41 @@ class Drawer {
             // arr[i].color = 'red';
             var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
             console.log(aimPos);
-            arr[i].moveAimTo(aimPos[0], aimPos[1]);
             // arr[i].x = aimPos[0];
             // arr[i].y = aimPos[1];
             this.drawCircle(arr[i]);
             this.drawLine(arr[i], arr[i + 1], true);
+            arr[i].moveToward(aimPos[0], aimPos[1]);
         }
         // arr[i].color = 'red';
         var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
         console.log(aimPos);
-        arr[i].moveAimTo(aimPos[0], aimPos[1]);
+        arr[i].moveToward(aimPos[0], aimPos[1]);
         // arr[i].x = aimPos[0];
         // arr[i].y = aimPos[1];
         this.drawCircle(arr[i]);
+
+        // test
+        arr.forEach((item, i) => {
+            this.ctx.beginPath();
+            var aimPos = this.getAimPos(item, unitRadian * (i + 1), dl);
+            this.ctx.arc(aimPos[0], aimPos[1], 10, 0, Math.PI * 2);
+            // 填充颜色
+            this.ctx.fillStyle = 'red';
+            // 叠加样式
+            this.ctx.globalCompositeOperation = 'destination-over';
+            // 添加到画布
+            this.ctx.fill();
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(item.x, item.y); //起始点
+            this.ctx.lineTo(aimPos[0], aimPos[1]); //终点
+            this.ctx.closePath();
+            this.ctx.strokeStyle = 'red';
+            this.ctx.stroke();
+        });
+        // end
+
         // debugger;
         this.mouseRelatedCircles = [];
     }
@@ -201,7 +225,7 @@ class Drawer {
             }
 
             if (relatedIndex.length) {
-                this.drawActiveCircleLine(relatedIndex, this.mouseCircle.y);
+                this.drawActiveCircleLine();
             }
         } else {
             this.mouseRelatedCircles = [];

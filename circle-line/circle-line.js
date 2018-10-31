@@ -1,11 +1,8 @@
 "use strict";
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -48,7 +45,7 @@ var Circle = /** @class */ (function () {
         this.y += this.v_y;
         return this;
     };
-    Circle.prototype.moveAimTo = function (x, y) {
+    Circle.prototype.moveToward = function (x, y) {
         var v_x = (x - this.x) / 360;
         var v_y = (y - this.y) / 360;
         this.x -= v_x;
@@ -114,11 +111,12 @@ var Drawer = /** @class */ (function () {
         // 添加到画布
         this.ctx.fill();
     };
-    Drawer.prototype.drawActiveCircleLine = function (circleIds, split_y) {
+    Drawer.prototype.drawActiveCircleLine = function () {
         var _this = this;
         if (!this.mouseRelatedCircles.length) {
             return;
         }
+        var split_y = this.mouseCircle.y;
         // 按 x 方向排序
         this.mouseRelatedCircles.sort(function (c1, c2) {
             return c1.x > c2.x ? 1 : -1;
@@ -158,19 +156,38 @@ var Drawer = /** @class */ (function () {
             // arr[i].color = 'red';
             var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
             console.log(aimPos);
-            arr[i].moveAimTo(aimPos[0], aimPos[1]);
             // arr[i].x = aimPos[0];
             // arr[i].y = aimPos[1];
             this.drawCircle(arr[i]);
             this.drawLine(arr[i], arr[i + 1], true);
+            arr[i].moveToward(aimPos[0], aimPos[1]);
         }
         // arr[i].color = 'red';
         var aimPos = this.getAimPos(arr[i], unitRadian * (i + 1), dl);
         console.log(aimPos);
-        arr[i].moveAimTo(aimPos[0], aimPos[1]);
+        arr[i].moveToward(aimPos[0], aimPos[1]);
         // arr[i].x = aimPos[0];
         // arr[i].y = aimPos[1];
         this.drawCircle(arr[i]);
+        // test
+        arr.forEach(function (item, i) {
+            _this.ctx.beginPath();
+            var aimPos = _this.getAimPos(item, unitRadian * (i + 1), dl);
+            _this.ctx.arc(aimPos[0], aimPos[1], 10, 0, Math.PI * 2);
+            // 填充颜色
+            _this.ctx.fillStyle = 'red';
+            // 叠加样式
+            _this.ctx.globalCompositeOperation = 'destination-over';
+            // 添加到画布
+            _this.ctx.fill();
+            _this.ctx.beginPath();
+            _this.ctx.moveTo(item.x, item.y); //起始点
+            _this.ctx.lineTo(aimPos[0], aimPos[1]); //终点
+            _this.ctx.closePath();
+            _this.ctx.strokeStyle = 'red';
+            _this.ctx.stroke();
+        });
+        // end
         // debugger;
         this.mouseRelatedCircles = [];
     };
@@ -197,7 +214,7 @@ var Drawer = /** @class */ (function () {
                 }
             }
             if (relatedIndex.length) {
-                this.drawActiveCircleLine(relatedIndex, this.mouseCircle.y);
+                this.drawActiveCircleLine();
             }
         }
         else {
